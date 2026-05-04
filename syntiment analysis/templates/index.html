@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sentiment Analysis - NLP Project</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+    min-height: 100vh;
+    padding: 2rem 1rem;
+    color: #fff;
+  }
+  .container { max-width: 720px; margin: 0 auto; }
+
+  .header { text-align:center; margin-bottom:2rem; }
+  .badge {
+    display:inline-block;
+    background:rgba(255,255,255,0.1);
+    border:1px solid rgba(255,255,255,0.2);
+    padding:4px 16px; border-radius:20px;
+    font-size:12px; letter-spacing:2px;
+    text-transform:uppercase; margin-bottom:12px; color:#a0c4ff;
+  }
+  h1 { font-size:2.5rem; font-weight:700; margin-bottom:6px; }
+  h1 span { color:#4cc9f0; }
+  .header p { color:rgba(255,255,255,0.55); font-size:0.95rem; }
+
+  .card {
+    background:rgba(255,255,255,0.07);
+    border:1px solid rgba(255,255,255,0.15);
+    border-radius:20px; padding:1.5rem;
+    margin-bottom:1.5rem; backdrop-filter:blur(10px);
+  }
+  .card label {
+    display:block; font-size:11px;
+    letter-spacing:1.5px; text-transform:uppercase;
+    color:rgba(255,255,255,0.45); margin-bottom:10px;
+  }
+  textarea {
+    width:100%; background:rgba(0,0,0,0.3);
+    border:1px solid rgba(255,255,255,0.1);
+    border-radius:12px; padding:14px; color:#fff;
+    font-size:1rem; font-family:'Segoe UI',sans-serif;
+    resize:none; min-height:130px; outline:none; line-height:1.6;
+    transition:border-color 0.2s;
+  }
+  textarea:focus { border-color:#4cc9f0; }
+  textarea::placeholder { color:rgba(255,255,255,0.2); }
+
+  .row { display:flex; justify-content:space-between; align-items:center; margin-top:14px; flex-wrap:wrap; gap:10px; }
+  .cnt { font-size:12px; color:rgba(255,255,255,0.35); }
+
+  .btn {
+    background:linear-gradient(135deg,#4cc9f0,#4361ee);
+    border:none; color:#fff; padding:12px 28px;
+    border-radius:12px; font-size:15px; font-weight:600;
+    cursor:pointer; transition:all 0.2s;
+  }
+  .btn:hover { transform:translateY(-2px); opacity:0.9; }
+  .btn:disabled { opacity:0.4; cursor:not-allowed; transform:none; }
+
+  .examples { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  .ex {
+    background:rgba(255,255,255,0.08);
+    border:1px solid rgba(255,255,255,0.15);
+    color:rgba(255,255,255,0.65); padding:6px 14px;
+    border-radius:20px; font-size:12px; cursor:pointer;
+    transition:all 0.2s;
+  }
+  .ex:hover { background:rgba(255,255,255,0.15); color:#fff; }
+
+  /* Loading */
+  .loading { display:none; text-align:center; padding:2rem; }
+  .spinner {
+    width:40px; height:40px;
+    border:3px solid rgba(255,255,255,0.1);
+    border-top-color:#4cc9f0; border-radius:50%;
+    animation:spin 0.8s linear infinite; margin:0 auto 12px;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+  .loading p { color:rgba(255,255,255,0.45); font-size:14px; }
+
+  /* Result */
+  .result {
+    display:none; border-radius:20px;
+    padding:1.75rem; margin-bottom:1.5rem;
+    border:1.5px solid; animation:fadeUp 0.4s ease;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+
+  .result.Positive { background:linear-gradient(135deg,rgba(34,197,94,.15),rgba(16,185,129,.08)); border-color:rgba(34,197,94,.4); }
+  .result.Neutral  { background:linear-gradient(135deg,rgba(234,179,8,.15),rgba(245,158,11,.08)); border-color:rgba(234,179,8,.4); }
+  .result.Negative { background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(220,38,38,.08));  border-color:rgba(239,68,68,.4); }
+
+  .top { text-align:center; margin-bottom:1.5rem; }
+  .big-emoji { font-size:64px; line-height:1; margin-bottom:8px; animation:pop 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes pop { from{transform:scale(0.2);opacity:0} to{transform:scale(1);opacity:1} }
+
+  .sent-name { font-size:1.8rem; font-weight:700; margin-bottom:6px; }
+  .Positive .sent-name { color:#4ade80; }
+  .Neutral  .sent-name { color:#fbbf24; }
+  .Negative .sent-name { color:#f87171; }
+
+  .conf-text { font-size:13px; color:rgba(255,255,255,0.45); }
+
+  /* Bars */
+  .score-row { display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+  .score-em { font-size:20px; width:26px; text-align:center; }
+  .score-lbl { font-size:13px; width:68px; color:rgba(255,255,255,.65); font-weight:500; }
+  .bar-bg { flex:1; height:10px; background:rgba(255,255,255,.1); border-radius:99px; overflow:hidden; }
+  .bar-fill { height:100%; border-radius:99px; width:0; transition:width 0.9s cubic-bezier(0.16,1,0.3,1); }
+  .bar-fill.pos { background:linear-gradient(90deg,#22c55e,#4ade80); }
+  .bar-fill.neu { background:linear-gradient(90deg,#d97706,#fbbf24); }
+  .bar-fill.neg { background:linear-gradient(90deg,#dc2626,#f87171); }
+  .score-pct { font-size:13px; width:38px; text-align:right; color:rgba(255,255,255,.6); font-weight:600; }
+
+  /* Stats */
+  .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:1.2rem; }
+  .stat { background:rgba(0,0,0,.2); border-radius:12px; padding:12px; text-align:center; }
+  .stat-val { font-size:1.3rem; font-weight:700; margin-bottom:2px; }
+  .stat-lbl { font-size:11px; color:rgba(255,255,255,.4); letter-spacing:1px; text-transform:uppercase; }
+
+  /* History */
+  .hist-section { display:none; }
+  .hist-title { font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,.4); margin-bottom:10px; }
+  .hist-item {
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+    border-radius:12px; padding:12px 16px;
+    display:flex; align-items:center; gap:12px;
+    margin-bottom:8px; cursor:pointer; transition:all 0.2s;
+  }
+  .hist-item:hover { background:rgba(255,255,255,.1); transform:translateX(4px); }
+  .hist-em { font-size:22px; }
+  .hist-txt { flex:1; font-size:13px; color:rgba(255,255,255,.6); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hist-badge { font-size:11px; padding:3px 10px; border-radius:20px; font-weight:600; white-space:nowrap; }
+  .hist-badge.Positive { background:rgba(34,197,94,.2);  color:#4ade80; }
+  .hist-badge.Neutral  { background:rgba(234,179,8,.2);  color:#fbbf24; }
+  .hist-badge.Negative { background:rgba(239,68,68,.2);  color:#f87171; }
+
+  .footer { text-align:center; margin-top:2rem; color:rgba(255,255,255,.2); font-size:12px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <div class="badge">🧠 NLP Powered</div>
+    <h1>Sentiment <span>Analysis</span></h1>
+    <p>Customer Feedback Classifier &nbsp;·&nbsp; Positive 😊 &nbsp;·&nbsp; Neutral 😐 &nbsp;·&nbsp; Negative 😢</p>
+  </div>
+
+  <div class="card">
+    <label>Customer Feedback</label>
+    <textarea id="txt" placeholder="Customer ka review ya feedback yahan type karo..."></textarea>
+    <div class="row">
+      <span class="cnt" id="cnt">0 characters</span>
+      <button class="btn" id="btn" onclick="run()">🔍 Analyze Now</button>
+    </div>
+    <div class="examples">
+      <button class="ex" onclick="fill('I absolutely love this product! Best purchase ever, highly recommended!')">😊 Positive</button>
+      <button class="ex" onclick="fill('The product is okay, nothing special. Average quality.')">😐 Neutral</button>
+      <button class="ex" onclick="fill('Terrible quality! Complete waste of money. Very disappointed!')">😢 Negative</button>
+    </div>
+  </div>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <p>Analyzing with NLP...</p>
+  </div>
+
+  <div class="result" id="result">
+    <div class="top">
+      <div class="big-emoji" id="rEmoji"></div>
+      <div class="sent-name" id="rName"></div>
+      <div class="conf-text" id="rConf"></div>
+    </div>
+    <div class="score-row">
+      <span class="score-em">😊</span>
+      <span class="score-lbl">Positive</span>
+      <div class="bar-bg"><div class="bar-fill pos" id="bPos"></div></div>
+      <span class="score-pct" id="pPos">0%</span>
+    </div>
+    <div class="score-row">
+      <span class="score-em">😐</span>
+      <span class="score-lbl">Neutral</span>
+      <div class="bar-bg"><div class="bar-fill neu" id="bNeu"></div></div>
+      <span class="score-pct" id="pNeu">0%</span>
+    </div>
+    <div class="score-row">
+      <span class="score-em">😢</span>
+      <span class="score-lbl">Negative</span>
+      <div class="bar-bg"><div class="bar-fill neg" id="bNeg"></div></div>
+      <span class="score-pct" id="pNeg">0%</span>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="stat-val" id="sConf">—</div><div class="stat-lbl">Confidence</div></div>
+      <div class="stat"><div class="stat-val" id="sWords">—</div><div class="stat-lbl">Words</div></div>
+      <div class="stat"><div class="stat-val" id="sSubj">—</div><div class="stat-lbl">Subjectivity</div></div>
+    </div>
+  </div>
+
+  <div class="hist-section" id="histSection">
+    <div class="hist-title">📋 Recent Analyses</div>
+    <div id="histList"></div>
+  </div>
+
+  <div class="footer">Sentiment Analysis · NLP Project · Flask + Python</div>
+</div>
+
+<script>
+const history = [];
+
+document.getElementById('txt').addEventListener('input', function() {
+  const l = this.value.length;
+  document.getElementById('cnt').textContent = l + ' character' + (l !== 1 ? 's' : '');
+});
+
+function fill(t) {
+  document.getElementById('txt').value = t;
+  document.getElementById('cnt').textContent = t.length + ' characters';
+}
+
+async function run() {
+  const text = document.getElementById('txt').value.trim();
+  if (!text || text.length < 3) { alert('Kam se kam 3 characters likho!'); return; }
+
+  document.getElementById('result').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('btn').disabled = true;
+
+  try {
+    const res = await fetch('/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    const data = await res.json();
+    showResult(data, text);
+  } catch (e) {
+    alert('Server se connection nahi hua. app.py chal raha hai?');
+  } finally {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('btn').disabled = false;
+  }
+}
+
+function showResult(d, text) {
+  const panel = document.getElementById('result');
+  panel.className = 'result ' + d.sentiment;
+  panel.style.display = 'block';
+
+  document.getElementById('rEmoji').textContent = d.emoji;
+  document.getElementById('rName').textContent = d.sentiment;
+  document.getElementById('rConf').textContent = 'Confidence: ' + d.confidence + '%  ·  Subjectivity: ' + d.subjectivity + '%';
+
+  setTimeout(() => {
+    setBar('bPos','pPos', d.positive);
+    setBar('bNeu','pNeu', d.neutral);
+    setBar('bNeg','pNeg', d.negative);
+  }, 50);
+
+  document.getElementById('sConf').textContent  = d.confidence + '%';
+  document.getElementById('sWords').textContent = text.trim().split(/\s+/).length;
+  document.getElementById('sSubj').textContent  = d.subjectivity + '%';
+
+  addHistory(d, text);
+}
+
+function setBar(bId, pId, v) {
+  document.getElementById(bId).style.width = v + '%';
+  document.getElementById(pId).textContent = v + '%';
+}
+
+function addHistory(d, text) {
+  history.unshift({ d, text });
+  if (history.length > 5) history.pop();
+  const list = document.getElementById('histList');
+  list.innerHTML = '';
+  history.forEach(h => {
+    const el = document.createElement('div');
+    el.className = 'hist-item';
+    el.innerHTML = `<span class="hist-em">${h.d.emoji}</span><span class="hist-txt">${h.text}</span><span class="hist-badge ${h.d.sentiment}">${h.d.sentiment}</span>`;
+    el.onclick = () => { fill(h.text); showResult(h.d, h.text); };
+    list.appendChild(el);
+  });
+  document.getElementById('histSection').style.display = 'block';
+}
+
+document.getElementById('txt').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.ctrlKey) run();
+});
+</script>
+</body>
+</html>
